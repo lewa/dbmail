@@ -515,9 +515,13 @@ void ci_authlog_init(ClientBase_T *client, const char *service, const char *user
 		db_stmt_set_int(s, 6, atoi(client->dst_port));
 		db_stmt_set_str(s, 7, status);
 
-		r = db_stmt_query(s);
-		
-		if(strcmp(AUTHLOG_ERR,status)!=0) client->authlog_id = db_insert_result(c, r);
+		if (db_params.db_driver == DM_DRIVER_ORACLE || db_params.db_driver == DM_DRIVER_MYSQL) {
+			db_stmt_exec(s);
+			if(strcmp(AUTHLOG_ERR,status)!=0) client->authlog_id = db_get_pk(c, "authlog");
+		} else {
+			r = db_stmt_query(s);
+			if(strcmp(AUTHLOG_ERR,status)!=0) client->authlog_id = db_insert_result(c, r);
+		}
 	CATCH(SQLException)
 		LOG_SQLERROR;
 	FINALLY

@@ -191,7 +191,7 @@ static uint64_t blob_insert(const char *buf, const char *hash)
 		db_stmt_set_str(s, 1, hash);
 		db_stmt_set_blob(s, 2, buf, l);
 		db_stmt_set_int(s, 3, l);
-		if (db_params.db_driver == DM_DRIVER_ORACLE) {
+		if (db_params.db_driver == DM_DRIVER_ORACLE || db_params.db_driver == DM_DRIVER_MYSQL) {
 			db_stmt_exec(s);
 			id = db_get_pk(c, "mimeparts");
 		} else {
@@ -1451,7 +1451,7 @@ static int _header_name_get_id(const DbmailMessage *self, const char *header, ui
 
 			db_stmt_set_str(s,1,safe_header);
 
-			if (db_params.db_driver == DM_DRIVER_ORACLE) {
+			if (db_params.db_driver == DM_DRIVER_ORACLE || db_params.db_driver == DM_DRIVER_MYSQL) {
 				db_stmt_exec(s);
 				*tmp = db_get_pk(c, "headername");
 			} else {
@@ -1534,7 +1534,7 @@ static uint64_t _header_value_insert(Connection_T c, const char *value, const ch
 	if (datesize)
 		db_stmt_set_str(s, 4, datefield);
 
-	if (db_params.db_driver == DM_DRIVER_ORACLE) {
+	if (db_params.db_driver == DM_DRIVER_ORACLE || db_params.db_driver == DM_DRIVER_MYSQL) {
 		db_stmt_exec(s);
 		id = db_get_pk(c, "headervalue");
 	} else {

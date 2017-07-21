@@ -516,6 +516,11 @@ inline gboolean db_stmt_exec(PreparedStatement_T s)
 
 inline ResultSet_T db_stmt_query(PreparedStatement_T s)
 {
+	// with prepared INSERT statements and mysql 5.7.?
+	// better stick to db_stmt_exec() and db_get_pk()
+	// due to CURSOR_TYPE_READ_ONLY issue
+	// (see mysql bug #85105 and libzdb issue #21)
+
 	return PreparedStatement_executeQuery(s);
 }
 
@@ -587,7 +592,11 @@ uint64_t db_get_pk(Connection_T c, const char *table)
 {
 	ResultSet_T r;
 	uint64_t id = 0;
-	r = db_query(c, "SELECT sq_%s%s.CURRVAL FROM DUAL", DBPFX, table);
+	if (db_params.db_driver == DM_DRIVER_MYSQL) {
+		r = db_query(c, "SELECT LAST_INSERT_ID()");
+	} else {
+		r = db_query(c, "SELECT sq_%s%s.CURRVAL FROM DUAL", DBPFX, table);
+	}
 	if (db_result_next(r))
 		id = db_result_get_u64(r, 0);
 	assert(id);
@@ -2637,7 +2646,7 @@ int db_createmailbox(const char * name, uint64_t owner_idnr, uint64_t * mailbox_
 		db_stmt_set_str(s,1,simple_name);
 		db_stmt_set_u64(s,2,owner_idnr);
 		
-		if (db_params.db_driver == DM_DRIVER_ORACLE) {
+		if (db_params.db_driver == DM_DRIVER_ORACLE || db_params.db_driver == DM_DRIVER_MYSQL) {
 			db_stmt_exec(s);
 			*mailbox_idnr = db_get_pk(c, "mailboxes");
 		} else {
@@ -3974,7 +3983,7 @@ int db_user_create(const char *username, const char *password, const char *encty
 			db_stmt_set_str(s, 6, encoding);
 		}
 		g_free(frag);
-		if (db_params.db_driver == DM_DRIVER_ORACLE) {
+		if (db_params.db_driver == DM_DRIVER_ORACLE || db_params.db_driver == DM_DRIVER_MYSQL) {
 			db_stmt_exec(s);
 			id = db_get_pk(c, "users");
 		} else {
